@@ -223,6 +223,5 @@ int main(int argc, char *argv[])
     app.command_manager().add_command(new FileCommand);
     app.command_manager().add_command(new HexView);
     app.run();
-    printf("\n");
     return 0;
 }
