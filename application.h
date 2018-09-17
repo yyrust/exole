@@ -28,6 +28,12 @@ public:
     CommandContext *context() { return context_.get(); }
     void set_default_prompt(const std::wstring &prompt);
     void update_prompt();
+
+    /// Get the size of the terminal window.
+    static bool get_window_size(unsigned *rows, unsigned *cols);
+    /// Read a character from the tty.
+    /// \return the number of characters read if successful, -1 otherwise.
+    int getc(wchar_t *ch);
 private:
     HistoryW *history_;
     EditLine *editline_;

@@ -9,6 +9,8 @@
 #include "token_parser.h"
 #include "wcs_util.h"
 #include <cerrno>
+#include <sys/ioctl.h>
+#include <unistd.h>
 
 namespace exole {
 
@@ -233,6 +235,33 @@ void Application::set_default_prompt(const std::wstring &prompt)
 {
     root_->set_prompt(prompt);
     update_prompt();
+}
+
+bool Application::get_window_size(unsigned *rows, unsigned *cols)
+{
+    if (!rows || !cols) {
+        return false;
+    }
+#ifdef TIOCGSIZE
+	struct ttysize ts;
+	int err = ioctl(STDIN_FILENO, TIOCGSIZE, &ts);
+	*cols = ts.ts_cols;
+	*rows = ts.ts_lines;
+#elif defined(TIOCGWINSZ)
+	struct winsize ts;
+	int err = ioctl(STDIN_FILENO, TIOCGWINSZ, &ts);
+	*cols = ts.ws_col;
+	*rows = ts.ws_row;
+#endif /* TIOCGSIZE */
+
+// NOTE: https://stackoverflow.com/a/50769952 explains the difference between TIOCGWINSZ and TIOCGSIZE.
+
+    return err != -1;
+}
+
+int Application::getc(wchar_t *ch)
+{
+    return el_wgetc(editline_, ch);
 }
 
 } // namespace exole
