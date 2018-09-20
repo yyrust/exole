@@ -15,6 +15,7 @@ add_library(exole SHARED
     file_name_completer.cpp
     command_manager.cpp
     help_command.cpp
+    pagination.cpp
     detail/arguments.cpp
     )
 target_link_libraries(exole ${EDITLINE_LIBRARIES})
@@ -31,6 +32,7 @@ install(FILES
     completion.h
     file_name_completer.h
     token_parser.h
+    pagination.h
     DESTINATION include/exole
     )
 install(TARGETS exole LIBRARY DESTINATION lib)
