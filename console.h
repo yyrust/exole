@@ -26,6 +26,7 @@ public:
     // If the input is empty, repeat the last command. Enabled by default.
     void set_repeat_on_empty(bool enabled);
     void show_help(Application &app);
+    bool show_command_help(Application &app, const std::wstring &command);
     /// You can print some hints when the user enters this console.
     virtual void on_enter_console(Application &app);
     virtual void on_leave_console(Application &app);

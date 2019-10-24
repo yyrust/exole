@@ -150,6 +150,19 @@ void Console::show_help(Application & /*app*/)
     printf("  <Ctrl-D>: quit\n");
 }
 
+bool Console::show_command_help(Application & /*app*/, const std::wstring &command)
+{
+    Command *cmd = command_manager().find_command(command);
+    if (cmd == nullptr)
+        return false;
+    if (!cmd->usage().empty())
+        printf("  %ls", cmd->usage().c_str());
+    else
+        printf("  %ls", cmd->name().c_str());
+    printf("\n");
+    return true;
+}
+
 std::wstring Console::get_prompt(Application &)
 {
     return name();

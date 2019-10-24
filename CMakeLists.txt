@@ -21,6 +21,8 @@ add_library(exole SHARED
 target_link_libraries(exole ${EDITLINE_LIBRARIES})
 add_executable(example example.cpp)
 target_link_libraries(example exole)
+add_executable(example_help example_help.cpp)
+target_link_libraries(example_help exole)
 install(FILES
     application.h
     console.h
