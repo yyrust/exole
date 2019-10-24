@@ -122,7 +122,9 @@ void Console::custom_run(Application &, int argc, const wchar_t **argv)
 
 void Console::on_enter_console(Application &app)
 {
-    show_help(app);
+    if (!app.is_batch_mode()) {
+        show_help(app);
+    }
 }
 
 void Console::on_leave_console(Application &)
@@ -134,7 +136,7 @@ void Console::set_repeat_on_empty(bool enabled)
     repeat_on_empty_ = enabled;
 }
 
-void Console::show_help(Application & /*app*/)
+void Console::show_help(Application &app)
 {
     if (!command_manager().get_commands().empty()) {
         printf("Commands:\n");
@@ -147,7 +149,8 @@ void Console::show_help(Application & /*app*/)
             printf("\n");
         }
     }
-    printf("  <Ctrl-D>: quit\n");
+    if (!app.is_batch_mode())
+        printf("  <Ctrl-D>: quit\n");
 }
 
 bool Console::show_command_help(Application & /*app*/, const std::wstring &command)

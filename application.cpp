@@ -38,6 +38,7 @@ Application::Application()
 , editline_(nullptr)
 , root_(new RootConsole())
 , prompt_(L"> ")
+, is_batch_mode_(false)
 {
     console_stack_.push_back(root_.get());
 }
@@ -56,8 +57,7 @@ Application::~Application()
 
 CommandManager &Application::command_manager()
 {
-    return
-    root_->command_manager();
+    return root_->command_manager();
 }
 
 // for reference: https://github.com/seanchann/libcutil (libcutil/src/core/core.c, function cli_complete() )
@@ -197,11 +197,66 @@ void Application::run()
         int argc;
         const wchar_t **argv;
         int ret = tok_wstr(tok, line, &argc, &argv);
-        if (ret)
+        if (ret < 0) { // internal error
+            fprintf(stderr, "failed to parse input (internal error)\n");
             continue;
-
-        current_console()->run(*this, argc, argv);
+        }
+        else if (ret > 0) { // need to read more lines
+            // TODO
+        }
+        else { // ret == 0, successful
+            current_console()->run(*this, argc, argv);
+        }
     }
+}
+
+void Application::init_batch_mode(const char * /*prog_name*/, std::unique_ptr<CommandContext> context)
+{
+    is_batch_mode_ = true;
+
+    context_ = std::move(context);
+    setlocale(LC_ALL, "");
+
+    current_console()->on_enter_console(*this);
+}
+
+void Application::run_command(const std::wstring &line)
+{
+    if (line.empty()) {
+        return;
+    }
+
+    TokenizerW *tok = tok_winit(NULL);
+    EXOLE_SCOPE_EXIT(tok, [](TokenizerW *t) { tok_wend(t); });
+
+    int argc;
+    const wchar_t **argv;
+    int ret = tok_wstr(tok, line.c_str(), &argc, &argv);
+
+    // partial input is not supported in batch mode
+    switch (ret) {
+    case 0: // successful
+        break;
+    case -1: // internal error
+        fprintf(stderr, "failed to parse command: internal error\n");
+        break;
+    case 1: // unmatched single quote
+        fprintf(stderr, "failed to parse command: unmatched single quote\n");
+        break;
+    case 2: // unmatched double quote
+        fprintf(stderr, "failed to parse command: unmatched double quote\n");
+        break;
+    case 3: // backslash quoted
+        fprintf(stderr, "failed to parse command: backslash quoted\n");
+        break;
+    default: // undocumented error
+        fprintf(stderr, "failed to parse command: unknown error %d\n", ret);
+        break;
+    }
+    if (ret != 0)
+        return;
+
+    current_console()->run(*this, argc, argv);
 }
 
 void Application::enter_console(Console *console)

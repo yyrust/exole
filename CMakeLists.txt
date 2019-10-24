@@ -16,13 +16,13 @@ add_library(exole SHARED
     command_manager.cpp
     help_command.cpp
     pagination.cpp
+    batch_mode_args.cpp
     detail/arguments.cpp
     )
 target_link_libraries(exole ${EDITLINE_LIBRARIES})
-add_executable(example example.cpp)
-target_link_libraries(example exole)
-add_executable(example_help example_help.cpp)
-target_link_libraries(example_help exole)
+
+add_subdirectory(example)
+
 install(FILES
     application.h
     console.h
@@ -35,6 +35,7 @@ install(FILES
     file_name_completer.h
     token_parser.h
     pagination.h
+    batch_mode_args.h
     DESTINATION include/exole
     )
 install(TARGETS exole LIBRARY DESTINATION lib)

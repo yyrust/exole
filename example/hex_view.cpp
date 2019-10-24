@@ -7,7 +7,7 @@
 
 using namespace exole;
 
-const char HISTORY_FILE[]=".econsole_history";
+const char HISTORY_FILE[]=".hex_view_history";
 
 class FileViewContext : public CommandContext
 {
@@ -115,11 +115,11 @@ public:
     }
 };
 
-class NextHexCommand: public Command
+class HexNextCommand: public Command
 {
 public:
     static const size_t LINE_LENGTH = 16;
-    NextHexCommand()
+    HexNextCommand()
     : Command(L"next")
     {
         set_usage(L"next [N]: show next N lines of hex data");
@@ -205,7 +205,7 @@ public:
     : Console(L"hex")
     {
         set_usage(L"hex:  view hex data");
-        command_manager().add_command(new NextHexCommand);
+        command_manager().add_command(new HexNextCommand);
     }
     void on_enter_console(Application &app) override
     {

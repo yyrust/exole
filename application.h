@@ -21,6 +21,12 @@ public:
     ~Application();
     void init(const char *prog_name, std::unique_ptr<CommandContext> context, const std::string &history_file);
     void run();
+
+    void init_batch_mode(const char *prog_name, std::unique_ptr<CommandContext> context);
+    void run_command(const std::wstring &line); // for batch mode only
+
+    bool is_batch_mode() const { return is_batch_mode_; }
+
     CommandManager &command_manager();
     void enter_console(Console *console);
     void leave_console();
@@ -42,6 +48,7 @@ private:
     std::unique_ptr<CommandContext> context_;
     std::wstring prompt_;
     std::string history_file_;
+    bool is_batch_mode_;
 
     // NOTE: function signature : el_func_t (declared in libedit/src/map.h)
     static el_action_t complete_handler(EditLine *editline, wint_t ch);
