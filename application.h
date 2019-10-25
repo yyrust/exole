@@ -1,7 +1,6 @@
 #ifndef EXOLE_APPLICATION_H
 #define EXOLE_APPLICATION_H
 
-#include <histedit.h>
 #include "command.h"
 #include "command_manager.h"
 #include "command_context.h"
@@ -13,6 +12,7 @@ typedef unsigned char el_action_t;
 
 class Console;
 class RootConsole;
+class EditlineWrapper;
 
 class Application
 {
@@ -34,6 +34,7 @@ public:
     CommandContext *context() { return context_.get(); }
     void set_default_prompt(const std::wstring &prompt);
     void update_prompt();
+    const std::wstring &get_prompt() const { return prompt_; }
 
     /// Get the size of the terminal window.
     static bool get_window_size(unsigned *rows, unsigned *cols);
@@ -41,19 +42,13 @@ public:
     /// \return the number of characters read if successful, -1 otherwise.
     int getc(wchar_t *ch);
 private:
-    HistoryW *history_;
-    EditLine *editline_;
+    std::unique_ptr<EditlineWrapper> el_;
     std::unique_ptr<RootConsole> root_;
     std::vector<Console *> console_stack_;
     std::unique_ptr<CommandContext> context_;
     std::wstring prompt_;
     std::string history_file_;
     bool is_batch_mode_;
-
-    // NOTE: function signature : el_func_t (declared in libedit/src/map.h)
-    static el_action_t complete_handler(EditLine *editline, wint_t ch);
-    // NOTE: function signature : el_pfunc_t (declared in libedit/src/map.h)
-    static wchar_t *prompt_handler(EditLine *editline);
 };
 
 } // namespace exole

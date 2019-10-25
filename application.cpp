@@ -3,6 +3,7 @@
 #include <cstring>
 #include <map>
 #include <vector>
+#include <histedit.h>
 #include "util.h"
 #include "application.h"
 #include "console.h"
@@ -33,25 +34,40 @@ private:
     std::wstring prompt_;
 };
 
+class EditlineWrapper
+{
+public:
+    EditlineWrapper()
+    : history_(nullptr)
+    , editline_(nullptr)
+    {}
+    HistoryW *history_;
+    EditLine *editline_;
+};
+
+// NOTE: function signature : el_func_t (declared in libedit/src/map.h)
+static el_action_t complete_handler(EditLine *editline, wint_t ch);
+// NOTE: function signature : el_pfunc_t (declared in libedit/src/map.h)
+static wchar_t *prompt_handler(EditLine *editline);
+
 Application::Application()
-: history_(nullptr)
-, editline_(nullptr)
-, root_(new RootConsole())
+: root_(new RootConsole())
 , prompt_(L"> ")
 , is_batch_mode_(false)
 {
+    el_.reset(new EditlineWrapper);
     console_stack_.push_back(root_.get());
 }
 
 Application::~Application()
 {
-    if (editline_) {
-        el_end(editline_);
+    if (el_->editline_) {
+        el_end(el_->editline_);
     }
-    if (history_) {
+    if (el_->history_) {
         HistEventW event;
-        history_w(history_, &event, H_SAVE, history_file_.c_str()); // save history
-        history_wend(history_);
+        history_w(el_->history_, &event, H_SAVE, history_file_.c_str()); // save history
+        history_wend(el_->history_);
     }
 }
 
@@ -61,7 +77,7 @@ CommandManager &Application::command_manager()
 }
 
 // for reference: https://github.com/seanchann/libcutil (libcutil/src/core/core.c, function cli_complete() )
-el_action_t Application::complete_handler(EditLine *editline, wint_t /*ch*/)
+el_action_t complete_handler(EditLine *editline, wint_t /*ch*/)
 {
     Application *self = nullptr;
     el_wget(editline, EL_CLIENTDATA, &self);
@@ -115,11 +131,11 @@ el_action_t Application::complete_handler(EditLine *editline, wint_t /*ch*/)
     return CC_NORM;
 }
 
-wchar_t *Application::prompt_handler(EditLine *editline)
+wchar_t *prompt_handler(EditLine *editline)
 {
     Application *self = nullptr;
     el_wget(editline, EL_CLIENTDATA, &self);
-    return const_cast<wchar_t *>(self->prompt_.c_str());
+    return const_cast<wchar_t *>(self->get_prompt().c_str());
 }
 
 void Application::init(const char *prog_name, std::unique_ptr<CommandContext> context, const std::string &history_file)
@@ -129,42 +145,42 @@ void Application::init(const char *prog_name, std::unique_ptr<CommandContext> co
 
     setlocale(LC_ALL, "");
 
-    history_ = history_winit();
+    HistoryW *history = history_winit();
     HistEventW event;
-    history_w(history_, &event, H_SETSIZE, 1000); // remember 1000 events
-    history_w(history_, &event, H_LOAD, history_file_.c_str()); // load histroy
-    history_w(history_, &event, H_SETUNIQUE, 1); // adjacent identical event strings should not be entered into the history
+    history_w(history, &event, H_SETSIZE, 1000); // remember 1000 events
+    history_w(history, &event, H_LOAD, history_file_.c_str()); // load histroy
+    history_w(history, &event, H_SETUNIQUE, 1); // adjacent identical event strings should not be entered into the history
 
-    editline_ = el_init(prog_name, stdin, stdout, stderr);
-    el_wset(editline_, EL_SIGNAL, 1); // handle signals gracefully
-
-    // NOTE: editline 的api分为宽字符版(例如el_wset/el_wget/...)和ascii字符版(例如el_set/el_get/...)。
-    //       对于前者，传入的字符串参数必须是宽字符串，否则无法被正确解析。
-
-    el_wset(editline_, EL_CLIENTDATA, this);
-    el_wset(editline_, EL_EDITOR, L"emacs"); // use emacs style key bindings
-    el_wset(editline_, EL_HIST, history_w, history_);
-    el_wset(editline_, EL_PROMPT, prompt_handler);
+    EditLine *editline = el_init(prog_name, stdin, stdout, stderr);
+    el_wset(editline, EL_SIGNAL, 1); // handle signals gracefully
 
     // NOTE: editline 的api分为宽字符版(例如el_wset/el_wget/...)和ascii字符版(例如el_set/el_get/...)。
     //       对于前者，传入的字符串参数必须是宽字符串，否则无法被正确解析。
+
+    el_wset(editline, EL_CLIENTDATA, this);
+    el_wset(editline, EL_EDITOR, L"emacs"); // use emacs style key bindings
+    el_wset(editline, EL_HIST, history_w, history);
+    el_wset(editline, EL_PROMPT, prompt_handler);
 
     // Register function complete_handler() as command "ed-complete"
-    el_wset(editline_, EL_ADDFN, L"ed-complete", L"Complete argument", complete_handler);
+    el_wset(editline, EL_ADDFN, L"ed-complete", L"Complete argument", complete_handler);
     /* Bind <tab> to command "ed-complete" */
-    el_wset(editline_, EL_BIND, L"^I", L"ed-complete", NULL);
+    el_wset(editline, EL_BIND, L"^I", L"ed-complete", NULL);
     // for reference:  https://github.com/seanchann/libcutil (libcutil/src/core/elhelper.c)
 
     // Bind ctrl-r to builtin command em-inc-search-prev
-    el_wset(editline_, EL_BIND, L"^R", L"em-inc-search-prev", NULL);
+    el_wset(editline, EL_BIND, L"^R", L"em-inc-search-prev", NULL);
     // Bind ctrl-d to builtin command ed-end-of-file
-    el_wset(editline_, EL_BIND, L"^D", L"ed-end-of-file", NULL);
+    el_wset(editline, EL_BIND, L"^D", L"ed-end-of-file", NULL);
 
     // Let ctrl-w delete just the previous word, otherwise it will delete to the beginning.
-    el_wset(editline_, EL_BIND, L"^W", L"ed-delete-prev-word", NULL);
+    el_wset(editline, EL_BIND, L"^W", L"ed-delete-prev-word", NULL);
 
     // NOTE: The following line will show all key-bindings, useful for debugging.
-    //el_wset(editline_, EL_BIND, NULL);
+    //el_wset(editline, EL_BIND, NULL);
+
+    el_->history_ = history;
+    el_->editline_ = editline;
 }
 
 void Application::run()
@@ -173,7 +189,7 @@ void Application::run()
     while (true) {
         const wchar_t *line = NULL;
         int num = 0;
-        line = el_wgets(editline_, &num);
+        line = el_wgets(el_->editline_, &num);
         if (line == NULL || num == 0) {
             leave_console();
             if (console_stack_.empty()) {
@@ -188,7 +204,7 @@ void Application::run()
 
         if (wcslen(line) != 0 && 0 != wcscmp(L"\n", line)) {
             HistEventW event;
-            history_w(history_, &event, H_ENTER, line);
+            history_w(el_->history_, &event, H_ENTER, line);
         }
 
         TokenizerW *tok = tok_winit(NULL);
@@ -201,7 +217,7 @@ void Application::run()
             fprintf(stderr, "failed to parse input (internal error)\n");
             continue;
         }
-        else if (ret > 0) { // need to read more lines
+        else if (ret > 0) { // need to read more lines until quotes are matched
             // TODO
         }
         else { // ret == 0, successful
@@ -316,7 +332,7 @@ bool Application::get_window_size(unsigned *rows, unsigned *cols)
 
 int Application::getc(wchar_t *ch)
 {
-    return el_wgetc(editline_, ch);
+    return el_wgetc(el_->editline_, ch);
 }
 
 } // namespace exole
