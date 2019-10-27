@@ -1,11 +1,15 @@
 # Editline library : http://thrysoee.dk/editline/
 
 find_path(EDITLINE_INCLUDE_DIR histedit.h
-    HINTS /usr/local/include
+    HINTS
+        /opt/local/include
+        /usr/local/include
     )
 
 find_library(EDITLINE_LIBRARY edit
-    HINTS /usr/local/lib
+    HINTS
+        /opt/local/lib
+        /usr/local/lib
     )
 
 include(FindPackageHandleStandardArgs)

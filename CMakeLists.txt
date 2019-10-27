@@ -4,6 +4,7 @@ cmake_minimum_required(VERSION 3.0)
 set(CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/cmake)
 include(FindEditline)
 find_package(Editline)
+include_directories(${EDITLINE_INCLUDE_DIR})
 
 add_definitions(-std=c++14 -pedantic -Wall -Werror -D_GLIBCXX_USE_CXX11_ABI=0)
 

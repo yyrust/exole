@@ -1,6 +1,7 @@
 #include "batch_mode_args.h"
 #include <fstream>
 #include <cassert>
+#include <cstring>
 
 namespace exole {
 
