@@ -170,8 +170,6 @@ void Application::init(const char *prog_name, std::unique_ptr<CommandContext> co
 
     // Bind ctrl-r to builtin command em-inc-search-prev
     el_wset(editline, EL_BIND, L"^R", L"em-inc-search-prev", NULL);
-    // Bind ctrl-d to builtin command ed-end-of-file
-    el_wset(editline, EL_BIND, L"^D", L"ed-end-of-file", NULL);
 
     // Let ctrl-w delete just the previous word, otherwise it will delete to the beginning.
     el_wset(editline, EL_BIND, L"^W", L"ed-delete-prev-word", NULL);
