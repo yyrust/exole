@@ -332,7 +332,10 @@ bool Application::get_window_size(unsigned *rows, unsigned *cols)
 
 int Application::getc(wchar_t *ch)
 {
-    return el_wgetc(el_->editline_, ch);
+    if (is_batch_mode_) // editline is N/A
+        return -1;
+    else
+        return el_wgetc(el_->editline_, ch);
 }
 
 } // namespace exole

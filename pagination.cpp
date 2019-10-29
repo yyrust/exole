@@ -15,6 +15,9 @@ void Pagination::start_page(Application &app)
 
 bool Pagination::next_page(Application &app)
 {
+    if (app.is_batch_mode()) {
+        return true;
+    }
     printf("(ENTER:continue / q:quit)");
     wchar_t ch = 0;
     enum { INVALID, QUIT, CONTINUE } choice = INVALID;
